@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalender Kustom</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        /* Mengatur agar card di tengah layar */
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f2f5;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #ffffff;
+            padding: 40px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        /* Heading Style */
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        /* Gaya untuk kalender */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .day {
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .header {
+            font-weight: bold;
+            background-color: #00a600;
+            color: white;
+        }
+
+        .date {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .date:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Gaya untuk shape pada tanggal kosong */
+        .empty {
+            background-color: #f0f0f0; /* Warna shape untuk tanggal kosong */
+            border-radius: 5px;
+        }
+
+        /* Gaya untuk tanggal hari ini */
+        .today {
+            background-color: #007bff; /* Warna biru untuk tanggal hari ini */
+            color: white;
+            border-radius: 5px;
+        }
+
+        /* Gaya untuk hari Minggu dan libur nasional */
+        .holiday {
+            color: red; /* Warna merah untuk hari Minggu dan libur nasional */
+            font-weight: bold;
+        }
+
+        /* Gaya untuk keterangan hari libur */
+        .holiday-info {
+            margin-top: 15px;
+            text-align: left;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #e87400;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px; /* Margin antar tombol */
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3; /* Warna saat hover */
+        }
+
+        button:active {
+            background-color: #004494; /* Warna saat ditekan */
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="month-year"></h1>
+        <div class="calendar" id="calendar"></div>
+        <button id="prev">❮ Prev</button>
+        <button id="next">Next ❯</button>
+        <div class="holiday-info" id="holiday-info"></div> <!-- Keterangan hari libur -->
+    </div>
+
+    <script>
+        const monthYearDisplay = document.getElementById("month-year");
+        const calendarElement = document.getElementById("calendar");
+        const prevButton = document.getElementById("prev");
+        const nextButton = document.getElementById("next");
+        const holidayInfo = document.getElementById("holiday-info");
+
+        let date = new Date();
+        const months = ["January", "February", "March", "April", "May", "June", 
+                        "July", "August", "September", "October", "November", "December"];
+
+        // Daftar hari libur nasional Indonesia
+        const nationalHolidays = [
+            { month: 0, day: 1, name: "Tahun Baru" },             // 1 Januari
+            { month: 1, day: 20, name: "Hari Raya Imlek" },       // 20 Februari
+            { month: 2, day: 29, name: "Hari Raya Nyepi" },       // 29 Maret
+            { month: 4, day: 1, name: "Hari Buruh Internasional" }, // 1 Mei
+            { month: 4, day: 18, name: "Hari Raya Waisak" },      // 18 Mei
+            { month: 5, day: 1, name: "Hari Lahir Pancasila" },   // 1 Juni
+            { month: 7, day: 17, name: "Hari Kemerdekaan" },      // 17 Agustus
+            { month: 8, day: 29, name: "Hari Sumpah Pemuda" },     // 29 September
+            { month: 11, day: 25, name: "Hari Natal" }             // 25 Desember
+        ];
+
+        function isHoliday(month, day) {
+            return nationalHolidays.find(holiday => holiday.month === month && holiday.day === day);
+        }
+
+        function renderCalendar() {
+            // Mengatur bulan dan tahun
+            const currentMonth = date.getMonth();
+            const currentYear = date.getFullYear();
+            const today = new Date();
+
+            monthYearDisplay.innerText = `${months[currentMonth]} ${currentYear}`;
+            calendarElement.innerHTML = '';
+            holidayInfo.innerHTML = ''; // Mengosongkan keterangan sebelumnya
+
+            // Menghitung hari pertama dan jumlah hari dalam bulan
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            const totalDays = lastDayOfMonth.getDate();
+            const startingDay = firstDayOfMonth.getDay();
+
+            // Menambahkan header hari
+            const daysHeader = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            daysHeader.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('day', 'header');
+                dayElement.innerText = day;
+                calendarElement.appendChild(dayElement);
+            });
+
+            // Mengisi tanggal
+            for (let i = 0; i < startingDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.classList.add('day', 'empty'); // Menambahkan class empty
+                calendarElement.appendChild(emptyCell);
+            }
+
+            const holidayNames = []; // Untuk menyimpan nama hari libur bulan ini
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('day', 'date');
+
+                // Menandai tanggal hari ini
+                if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+                    dayElement.classList.add('today'); // Menambahkan class today
+                }
+
+                // Menandai hari Minggu atau hari libur nasional
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                const holiday = isHoliday(currentMonth, day);
+                if (dayOfWeek === 0 || holiday) { // 0 adalah hari Minggu
+                    dayElement.classList.add('holiday'); // Menambahkan class holiday
+                    if (holiday) {
+                        holidayNames.push(holiday.name); // Menyimpan nama libur
+                    }
+                }
+
+                dayElement.innerText = day;
+                calendarElement.appendChild(dayElement);
+            }
+
+            // Menampilkan informasi hari libur
+            if (holidayNames.length > 0) {
+                holidayInfo.innerText = `Hari Libur Nasional: ${holidayNames.join(", ")}`;
+            }
+        }
+
+        // Event listener untuk tombol prev dan next
+        prevButton.addEventListener("click", () => {
+            date.setMonth(date.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextButton.addEventListener("click", () => {
+            date.setMonth(date.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Render kalender pertama kali
+        renderCalendar();
+        if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Service Worker registration failed:', error);
+            });
+    });
+}
+
+    </script>
+</body>
+</html>
